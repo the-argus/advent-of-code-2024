@@ -3,6 +3,8 @@
 #include <fstream>
 #include <vector>
 
+#define PART1 false
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -41,8 +43,22 @@ int main(int argc, char* argv[])
     std::stable_sort(std::begin(rightnums), std::end(rightnums));
 
     size_t totaldiff = 0;
+    auto searchfrom = rightnums.begin();
     for (size_t i = 0; i < leftnums.size(); ++i) {
+#if PART1
         totaldiff += abs(leftnums.at(i) - rightnums.at(i));
+#else
+        auto val = leftnums[i];
+        auto newiter = std::find(searchfrom, rightnums.end(), val);
+        if (newiter == rightnums.end())
+            continue;
+
+        while (*newiter == val) {
+            totaldiff += val;
+            newiter++;
+        }
+        searchfrom = newiter;
+#endif
     }
 
     fmt::println("{}", totaldiff);
