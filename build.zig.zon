@@ -1,0 +1,22 @@
+.{
+    .name = "ziglike",
+    .version = "0.1.0",
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "flake.lock",
+        "flake.nix",
+    },
+
+    .dependencies = .{
+        .fmt = .{
+            .url = "https://github.com/the-argus/fmt/archive/d5ad6ce7ab711d601ffbf0706740279617b43325.tar.gz",
+            .hash = "1220727ae90b421da0d3e09aa9449a55eff672fdab47f62dd661dc1b5634ea78b56a",
+        },
+        .compile_commands = .{
+            .url = "https://github.com/the-argus/zig-compile-commands/archive/b73e8bdeb1266ea01b249387cabb39aad49f35d1.tar.gz",
+            .hash = "1220b92b277b33762a10b4f239edddfbe9aadd53af88c678f94443b0d2312d9526fa",
+        },
+    },
+}
