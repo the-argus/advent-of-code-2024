@@ -1,7 +1,10 @@
+#include <cassert>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
 #include <optional>
+#include <set>
+#include <vector>
 
 int main(int argc, char* argv[])
 {
@@ -26,38 +29,52 @@ int main(int argc, char* argv[])
 
     std::string line;
     size_t safecount = 0;
+    std::set<int> uniques;
+    std::vector<int> nums;
     while (std::getline(file, line)) {
+        nums.clear();
+        uniques.clear();
+
         size_t searchidx = 0;
-        int prev = 0;
-        std::optional<bool> decreasing = {};
-        bool safe = true;
-        while (searchidx != std::string::npos) {
+        while (searchidx != std::string::npos && searchidx < line.length()) {
             size_t newidx = line.find(' ', searchidx);
-            auto numstr = line.substr(searchidx,
-                                      newidx == std::string::npos ? 0 : newidx);
-            searchidx = newidx;
+            bool found = newidx != std::string::npos;
+            auto numstr =
+                line.substr(searchidx, found ? newidx - searchidx
+                                             : line.length() - searchidx);
 
             int num = std::stoi(numstr);
-            if (searchidx != 0) {
-                if (!decreasing.has_value())
-                    decreasing = num < prev;
+            nums.push_back(num);
+            if (found)
+                searchidx = newidx + 1;
+            else
+                break;
+        }
 
-                if ((num == prev) || (*decreasing && num > prev) ||
-                    (!*decreasing && num < prev)) {
-                    safe = false;
-                    break;
-                }
+        uniques = std::set<int>(nums.cbegin(), nums.cend());
+        if (uniques.size() < nums.size())
+            continue; // duplicates
 
-                auto diff = abs(num - prev);
+        auto lessthan = [](int a, int b) -> bool { return a < b; };
+        auto greaterthan = [](int a, int b) -> bool { return a > b; };
+        if (!(std::is_sorted(nums.cbegin(), nums.cend(), lessthan) ||
+              std::is_sorted(nums.cbegin(), nums.cend(), greaterthan))) {
+            continue;
+        }
+
+        std::optional<int> prev = {};
+        bool safe = true;
+        for (int i : nums) {
+            if (prev.has_value()) {
+                auto diff = abs(i - *prev);
                 if (diff < 1 || diff > 3) {
                     safe = false;
                     break;
                 }
             }
-            prev = num;
+            prev = i;
         }
-        if (safe)
-            ++safecount;
+        safecount += safe ? 1 : 0;
     }
 
     fmt::println("safecount: {}", safecount);

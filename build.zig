@@ -4,7 +4,7 @@ const zcc = @import("compile_commands");
 
 const debug_flags = &[_][]const u8{
     "-g",
-    "-std=c++17",
+    "-std=c++20",
     "-DFMT_EXCEPTIONS=1",
 };
 
