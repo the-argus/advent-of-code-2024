@@ -1,10 +1,30 @@
-#include <cassert>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
-#include <optional>
+#include <ranges>
 #include <set>
 #include <vector>
+
+bool is_safe(const std::vector<int>& nums)
+{
+    if (!(std::ranges::is_sorted(nums, std::ranges::less{}) ||
+          std::ranges::is_sorted(nums, std::ranges::greater{}))) {
+        return false;
+    }
+
+    auto uniques = std::set(std::ranges::begin(nums), std::ranges::end(nums));
+    if (uniques.size() != nums.size()) {
+        return false;
+    }
+
+    for (auto it = nums.begin(); it + 1 != nums.end(); ++it) {
+        int diff = abs(*it - *(it + 1));
+        if (diff < 1 || diff > 3)
+            return false;
+    }
+
+    return true;
+}
 
 int main(int argc, char* argv[])
 {
@@ -29,52 +49,35 @@ int main(int argc, char* argv[])
 
     std::string line;
     size_t safecount = 0;
-    std::set<int> uniques;
     std::vector<int> nums;
     while (std::getline(file, line)) {
         nums.clear();
-        uniques.clear();
 
-        size_t searchidx = 0;
-        while (searchidx != std::string::npos && searchidx < line.length()) {
-            size_t newidx = line.find(' ', searchidx);
-            bool found = newidx != std::string::npos;
-            auto numstr =
-                line.substr(searchidx, found ? newidx - searchidx
-                                             : line.length() - searchidx);
+        auto strtoint = [](auto numstr) {
+            return std::stoi(std::string(numstr.begin(), numstr.end()));
+        };
 
-            int num = std::stoi(numstr);
-            nums.push_back(num);
-            if (found)
-                searchidx = newidx + 1;
-            else
-                break;
-        }
+        auto as_ints =
+            std::views::split(line, ' ') | std::views::transform(strtoint);
 
-        uniques = std::set<int>(nums.cbegin(), nums.cend());
-        if (uniques.size() < nums.size())
-            continue; // duplicates
+        std::ranges::copy(as_ints, std::back_inserter(nums));
 
-        auto lessthan = [](int a, int b) -> bool { return a < b; };
-        auto greaterthan = [](int a, int b) -> bool { return a > b; };
-        if (!(std::is_sorted(nums.cbegin(), nums.cend(), lessthan) ||
-              std::is_sorted(nums.cbegin(), nums.cend(), greaterthan))) {
+        // early out
+        if (is_safe(nums)) {
+            safecount++;
             continue;
         }
 
-        std::optional<int> prev = {};
-        bool safe = true;
-        for (int i : nums) {
-            if (prev.has_value()) {
-                auto diff = abs(i - *prev);
-                if (diff < 1 || diff > 3) {
-                    safe = false;
-                    break;
-                }
+        std::vector<int> removed;
+        for (long i = 0; i < nums.size(); ++i) {
+            std::copy(nums.begin(), nums.end(), std::back_inserter(removed));
+            removed.erase(removed.begin() + i);
+            if (is_safe(removed)) {
+                safecount++;
+                break;
             }
-            prev = i;
+            removed.clear();
         }
-        safecount += safe ? 1 : 0;
     }
 
     fmt::println("safecount: {}", safecount);
