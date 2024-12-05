@@ -2,6 +2,7 @@
 #include <fmt/core.h>
 #include <fstream>
 #include <ranges>
+#include <set>
 #include <vector>
 
 std::vector<std::vector<char>> parse_word_search(std::ifstream& file)
@@ -41,6 +42,12 @@ int main(int argc, char* argv[])
     file.close();
 
     size_t total_appearances = 0;
+
+    size_t x = 0;
+    size_t y = 0;
+
+    std::set<std::pair<size_t, size_t>> coords;
+
     // create a sliding 2D window over the wordsearch
     for (auto row = wordsearch.begin(); row + 4 != wordsearch.end(); ++row) {
         for (long i = 0; i + 4 < row->size(); ++i) {
@@ -59,9 +66,13 @@ int main(int argc, char* argv[])
             };
 
             // check horizontal
-            for (auto row : window)
-                if (is_phrase(row.begin(), row.end()))
-                    total_appearances += 1;
+            for (auto row : window) {
+                if (coords.contains({x, y})) {
+                    if (is_phrase(row.begin(), row.end())) {
+                        total_appearances += 1;
+                    }
+                }
+            }
 
             // check vertical
             for (long i = 0; i < window[0].size(); ++i) {
