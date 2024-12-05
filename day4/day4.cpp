@@ -42,61 +42,45 @@ int main(int argc, char* argv[])
     const auto width = wordsearch[0].size();
     const auto height = wordsearch.size();
 
-    const auto count_occurrences_in_window =
-        [&wordsearch, width, height](int64_t x, int64_t y) -> int64_t {
-        int64_t result = 0;
-
-        constexpr auto is_phrase = [](auto begin, auto end) -> bool {
-            constexpr std::string_view phrase = "XMAS";
+    const auto window_has_xmas = [&wordsearch, width,
+                                  height](int64_t x, int64_t y) -> int64_t {
+        constexpr auto is_mas = [](auto begin, auto end) -> bool {
+            constexpr std::string_view phrase = "MAS";
             return std::equal(begin, end, phrase.begin(), phrase.end()) ||
                    std::equal(begin, end, phrase.rbegin(), phrase.rend());
         };
 
+        bool hgood = x + 3 <= width;
+        bool vgood = y + 3 <= height;
+
+        if (!hgood || !vgood)
+            return false;
+
         std::vector<std::string> kernel;
 
-        bool hgood = x + 4 <= width;
-        bool vgood = y + 4 <= height;
-
-        if (hgood && vgood) {
-            // diagonals
-            kernel.push_back(std::string{
-                wordsearch[y + 0][x + 0],
-                wordsearch[y + 1][x + 1],
-                wordsearch[y + 2][x + 2],
-                wordsearch[y + 3][x + 3],
-            });
-            kernel.push_back(std::string{
-                wordsearch[y + 3][x + 0],
-                wordsearch[y + 2][x + 1],
-                wordsearch[y + 1][x + 2],
-                wordsearch[y + 0][x + 3],
-            });
-        }
-
-        if (hgood)
-            kernel.push_back(std::string{
-                wordsearch[y].begin() + x,
-                wordsearch[y].begin() + x + 4,
-            });
-
-        if (vgood)
-            kernel.push_back(std::string{
-                wordsearch[y + 0][x],
-                wordsearch[y + 1][x],
-                wordsearch[y + 2][x],
-                wordsearch[y + 3][x],
-            });
+        // diagonals
+        kernel.push_back(std::string{
+            wordsearch[y + 0][x + 0],
+            wordsearch[y + 1][x + 1],
+            wordsearch[y + 2][x + 2],
+        });
+        kernel.push_back(std::string{
+            wordsearch[y + 2][x + 0],
+            wordsearch[y + 1][x + 1],
+            wordsearch[y + 0][x + 2],
+        });
 
         for (const auto& d : kernel)
-            result += is_phrase(d.begin(), d.end());
+            if (!is_mas(d.begin(), d.end()))
+                return false;
 
-        return result;
+        return true;
     };
 
     size_t total_appearances = 0;
     for (int64_t y = 0; y < wordsearch.size(); ++y)
         for (int64_t x = 0; x < wordsearch[0].size(); ++x)
-            total_appearances += count_occurrences_in_window(x, y);
+            total_appearances += window_has_xmas(x, y);
 
     fmt::println("times xmas found {}", total_appearances);
 
