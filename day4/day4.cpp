@@ -50,24 +50,17 @@ int main(int argc, char* argv[])
                    std::equal(begin, end, phrase.rbegin(), phrase.rend());
         };
 
-        bool hgood = x + 3 <= width;
-        bool vgood = y + 3 <= height;
-
-        if (!hgood || !vgood)
-            return false;
-
         std::vector<std::string> kernel;
 
-        // diagonals
         kernel.push_back(std::string{
-            wordsearch[y + 0][x + 0],
-            wordsearch[y + 1][x + 1],
-            wordsearch[y + 2][x + 2],
+            wordsearch.at(y + 0).at(x + 0),
+            wordsearch.at(y + 1).at(x + 1),
+            wordsearch.at(y + 2).at(x + 2),
         });
         kernel.push_back(std::string{
-            wordsearch[y + 2][x + 0],
-            wordsearch[y + 1][x + 1],
-            wordsearch[y + 0][x + 2],
+            wordsearch.at(y + 2).at(x + 0),
+            wordsearch.at(y + 1).at(x + 1),
+            wordsearch.at(y + 0).at(x + 2),
         });
 
         for (const auto& d : kernel)
@@ -78,8 +71,8 @@ int main(int argc, char* argv[])
     };
 
     size_t total_appearances = 0;
-    for (int64_t y = 0; y < wordsearch.size(); ++y)
-        for (int64_t x = 0; x < wordsearch[0].size(); ++x)
+    for (int64_t y = 0; y < height - 2; ++y)
+        for (int64_t x = 0; x < width - 2; ++x)
             total_appearances += window_has_xmas(x, y);
 
     fmt::println("times xmas found {}", total_appearances);
