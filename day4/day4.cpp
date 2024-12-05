@@ -43,21 +43,15 @@ int main(int argc, char* argv[])
 
     size_t total_appearances = 0;
 
-    size_t x = 0;
-    size_t y = 0;
 
     std::set<std::pair<size_t, size_t>> coords;
 
     // create a sliding 2D window over the wordsearch
+    size_t y = 0;
     for (auto row = wordsearch.begin(); row + 4 != wordsearch.end(); ++row) {
+        size_t x = 0;
         for (long i = 0; i + 4 < row->size(); ++i) {
             using subrange = std::ranges::subrange<decltype(row->begin())>;
-            std::array<subrange, 4> window = {
-                subrange{row->begin() + i, row->begin() + i + 4},
-                subrange{(row + 1)->begin() + i, (row + 1)->begin() + i + 4},
-                subrange{(row + 2)->begin() + i, (row + 2)->begin() + i + 4},
-                subrange{(row + 3)->begin() + i, (row + 3)->begin() + i + 4},
-            };
 
             constexpr auto is_phrase = [](auto begin, auto end) -> bool {
                 constexpr std::string_view phrase = "XMAS";
@@ -66,18 +60,25 @@ int main(int argc, char* argv[])
             };
 
             // check horizontal
-            for (auto row : window) {
-                if (coords.contains({x, y})) {
-                    if (is_phrase(row.begin(), row.end())) {
+            for (long j = 0; j < 4; ++j) {
+                std::pair<size_t, size_t> startcoords = {x, y + i};
+                if (!coords.contains(startcoords)) {
+                    auto crow = row + j;
+                    auto subrow_start = crow->begin() + i;
+                    auto subrow_end = crow->begin() + i + 4;
+
+                    if (is_phrase(subrow_start, subrow_end)) {
                         total_appearances += 1;
                     }
                 }
+                coords.insert(startcoords);
             }
 
             // check vertical
-            for (long i = 0; i < window[0].size(); ++i) {
+            for (long j = 0; j < 4; ++j) {
+                std::pair<size_t, size_t> startcoords = {x, y};
                 std::string col;
-                for (auto row : window)
+                for (size_t k; )
                     col += row[i];
 
                 if (is_phrase(col.begin(), col.end()))
@@ -103,7 +104,10 @@ int main(int argc, char* argv[])
             for (const auto& d : diagonals)
                 if (is_phrase(d.begin(), d.end()))
                     total_appearances += 1;
+
+            x += 1;
         }
+        y += 1;
     }
 
     fmt::println("times xmas found {}", total_appearances);
