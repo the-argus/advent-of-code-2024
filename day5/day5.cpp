@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
 
     std::string line;
     size_t total = 0;
+    size_t incorrect_total = 0;
     while (std::getline(file, line)) {
         bool is_rule = std::find(line.begin(), line.end(), '|') != line.end();
         bool is_update = std::find(line.begin(), line.end(), ',') != line.end();
@@ -93,11 +94,20 @@ int main(int argc, char* argv[])
 
             if (good_update) {
                 total += update[update.size() / 2];
+            } else {
+                std::stable_sort(
+                    update.begin(), update.end(),
+                    [&rules](int32_t a, int32_t b) -> bool {
+                        return rules[a].numbers_that_should_go_after.contains(
+                            b);
+                    });
+                incorrect_total += update[update.size() / 2];
             }
         }
     }
 
     fmt::println("addition of middle of good rules {}", total);
+    fmt::println("addition of middle of bad rules {}", incorrect_total);
 
     return 0;
 }
