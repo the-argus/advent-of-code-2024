@@ -77,8 +77,8 @@ struct VisitHasher
 {
     std::size_t operator()(Visit const& v) const
     {
-        return std::hash<int64_t>()(v.location.first &
-                                        (v.location.second << 24) ^
+        return std::hash<int64_t>()(v.location.first ^
+                                    (v.location.second << 24) ^
                                     uint8_t(v.direction));
     }
 };
@@ -119,12 +119,11 @@ bool is_route_looping_cached(VisitMap& visits,
             .direction = uint8_t(direction_to_tile_flags(guard_direction)),
         };
 
-        visit_sequence.push_back(visit);
-
         if (visits.contains(visit)) {
             // we have already been here and will continue to loop
             return true;
         }
+        visit_sequence.push_back(visit);
         visits.insert({visit, true});
 
         if (!(next & uint8_t(TileFlags::IsObstacle))) {
@@ -147,6 +146,14 @@ bool is_route_looping_cached(VisitMap& visits,
             std::abort();
         }
     }
+
+    Visit last_visit{
+        .location = guard,
+        .direction = uint8_t(direction_to_tile_flags(guard_direction)),
+    };
+    visits.insert({last_visit, true});
+    visit_sequence.push_back(last_visit);
+
     return false;
 };
 
@@ -186,10 +193,10 @@ void thread_entry(std::unique_ptr<ThreadContext> context)
             // rewind to before that point
 
             visit_sequence.clear();
+            visits.clear();
             std::copy(context->default_visit_sequence.begin(),
                       context->default_visit_sequence.end(),
                       std::back_inserter(visit_sequence));
-            visits.clear();
             std::copy(context->default_visits.begin(),
                       context->default_visits.end(),
                       std::inserter(visits, visits.end()));
@@ -206,10 +213,14 @@ void thread_entry(std::unique_ptr<ThreadContext> context)
                                  visit_sequence.end());
 
             uint8_t copy = tile;
-            tile &= uint8_t(TileFlags::IsObstacle);
+            tile |= uint8_t(TileFlags::IsObstacle);
             const Visit& start = visit_sequence.empty()
                                      ? context->default_visit_sequence.front()
                                      : visit_sequence.back();
+            if (!visit_sequence.empty()) {
+                visits.erase(visit_sequence.back());
+                visit_sequence.pop_back();
+            }
             const auto location = start.location;
             const auto dir = tile_flags_to_direction(start.direction);
             total_looping += is_route_looping_cached(visits, visit_sequence,
@@ -286,7 +297,9 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::unordered_map<Visit, bool, VisitHasher> visits;
+    auto time = std::chrono::high_resolution_clock::now();
+
+    VisitMap visits;
     std::vector<Visit> visit_sequence;
 
     // initialize cache
@@ -323,6 +336,10 @@ int main(int argc, char* argv[])
     for (auto& thread : threads)
         thread.join();
     threads.clear();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_double = end - time;
+    fmt::println("took {}", ms_double.count());
 
     fmt::println("looping paths: {}", loops.load());
 
