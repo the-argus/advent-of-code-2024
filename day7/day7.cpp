@@ -50,18 +50,46 @@ int main(int argc, char* argv[])
         std::vector<size_t> right;
         std::copy(as_ints.begin(), as_ints.end(), std::back_inserter(right));
 
-        size_t max = 1 << right.size();
+        std::vector<uint8_t> ops;
+        ops.resize(right.size() - 1);
+        std::fill(ops.begin(), ops.end(), 0);
 
-        for (size_t i = 0; i < max; ++i) {
-            size_t initial = right.at(0);
-            for (size_t bit = 1; bit < right.size(); ++bit) {
-                bool has = ((1 << (bit - 1)) & i) != 0;
-                if (has)
-                    initial *= right.at(bit);
-                else
-                    initial += right.at(bit);
+        auto possible_combos = size_t(std::pow(3, ops.size()));
+        for (size_t i = 0; i < possible_combos; ++i) {
+            // count in base 3
+            for (uint8_t& slot : ops) {
+                if (slot < 2) {
+                    slot++;
+                    break;
+                } else {
+                    slot = 0;
+                    continue;
+                }
             }
-            if (left == initial) {
+
+            size_t accum = right[0];
+            for (size_t j = 1; j < right.size(); ++j) {
+                switch (ops[j - 1]) {
+                case 2: {
+                    accum += right[j];
+                    break;
+                }
+                case 1: {
+                    accum *= right[j];
+                    break;
+                }
+                case 0: {
+                    accum = strtoint(std::to_string(accum) +
+                                     std::to_string(right[j]));
+                    break;
+                }
+                default:
+                    fmt::println("wut");
+                    std::abort();
+                }
+            }
+
+            if (accum == left) {
                 total += left;
                 break;
             }
