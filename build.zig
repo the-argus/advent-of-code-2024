@@ -2,15 +2,11 @@ const std = @import("std");
 const builtin = @import("builtin");
 const zcc = @import("compile_commands");
 
-const debug_flags = &[_][]const u8{
+const universal_flags = &[_][]const u8{
     "-g",
     "-std=c++20",
     "-DFMT_EXCEPTIONS=1",
-};
-
-const testing_flags = &[_][]const u8{
     "-DFMT_HEADER_ONLY",
-    "-I./tests/",
     "-I./include/",
 };
 
@@ -22,6 +18,7 @@ const executables = &[_][]const u8{
     "day5/day5.cpp",
     "day6/day6.cpp",
     "day7/day7.cpp",
+    "day8/day8.cpp",
 };
 
 pub fn build(b: *std.Build) !void {
@@ -30,8 +27,7 @@ pub fn build(b: *std.Build) !void {
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
     defer flags.deinit();
-    try flags.appendSlice(debug_flags);
-    try flags.appendSlice(testing_flags);
+    try flags.appendSlice(universal_flags);
 
     var targets = std.ArrayList(*std.Build.Step.Compile).init(b.allocator);
     defer targets.deinit();
