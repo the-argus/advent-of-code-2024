@@ -19,6 +19,7 @@ const executables = &[_][]const u8{
     "day6/day6.cpp",
     "day7/day7.cpp",
     "day8/day8.cpp",
+    "day9/day9.cpp",
 };
 
 pub fn build(b: *std.Build) !void {

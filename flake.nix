@@ -29,6 +29,8 @@
               gdb
               valgrind
               zig_0_13
+              (pkgs.writeScriptBin "build" "zig build install_day$1")
+              (pkgs.writeScriptBin "run" "gdb --args ./zig-out/bin/day$1 ./day$1/input")
             ]);
         };
 
