@@ -1,8 +1,17 @@
 #include "aoc.h"
 #include "shorthand.h"
 #include <cassert>
+#include <list>
 #include <ranges>
 #include <vector>
+
+struct Block
+{
+    u64 size;
+    i64 id = -1;
+    [[nodiscard]] inline bool is_free() const { return id < 0; }
+    static inline Block free_block(u64 size) { return {.size = size}; }
+};
 
 int main(int argc, char* argv[])
 {
@@ -22,45 +31,53 @@ int main(int argc, char* argv[])
     std::copy(std::cbegin(numview), std::cend(numview),
               std::back_inserter(nums));
 
-    std::vector<i64> blocks;
-    blocks.reserve(nums.size());
+    std::list<Block> blocks;
 
     for (i64 i = 0; i < nums.size(); ++i) {
         i64 num = nums.at(i);
         if (i % 2 == 0) {
-            assert(num >= 0 && num < 10);
-            for (u64 j = 0; j < num; ++j)
-                blocks.push_back(i / 2);
+            assert(num >= 0);
+            blocks.push_back(Block{.size = u64(num), .id = i / 2});
         } else {
-            for (u64 j = 0; j < num; ++j)
-                blocks.push_back(-1);
+            blocks.push_back(Block::free_block(num));
         }
     }
 
-    auto backwards_iter = std::rbegin(blocks);
-    auto forwards_iter = std::begin(blocks);
-    while (true) {
-        // find first number at the end thats not negative 1
-        backwards_iter = std::find_if(backwards_iter, std::rend(blocks),
-                                      [](i64 i) { return i >= 0; });
-        forwards_iter = std::find(forwards_iter, std::end(blocks), -1);
+    auto back_iter = std::rbegin(blocks);
+    while (back_iter != std::rend(blocks)) {
+        if (back_iter->is_free()) {
+            ++back_iter;
+            continue;
+        }
 
-        // if they cross, break
-        if (forwards_iter - std::begin(blocks) >=
-            std::rend(blocks) - backwards_iter)
-            break;
+        // NOTE: back_iter.base() offset by one so search includes back_iter
+        auto replacement = std::find_if(
+            std::begin(blocks), back_iter.base(), [back_iter](const Block& b) {
+                return b.is_free() && b.size >= back_iter->size;
+            });
 
-        *forwards_iter = *backwards_iter;
-        *backwards_iter = -1;
+        if (replacement == back_iter.base()) {
+            ++back_iter;
+            continue;
+        }
+
+        // put block before free block
+        blocks.insert(replacement, *back_iter);
+        // mark original block as free
+        *back_iter = Block::free_block(back_iter->size);
+        // shrink free block by however much this new one is
+        replacement->size -= back_iter->size;
+        ++back_iter;
     }
 
     u64 checksum = 0;
-    for (u64 i = 0; i < blocks.size(); ++i) {
-        i64 num = blocks.at(i);
-        if (num < 0)
-            break;
-
-        checksum += num * i;
+    u64 idx = 0;
+    for (Block block : blocks) {
+        if (!block.is_free()) {
+            for (u64 i = idx; i < idx + block.size; ++i)
+                checksum += block.id * i;
+        }
+        idx += block.size;
     }
 
     fmt::println("checksum: {}", checksum);
