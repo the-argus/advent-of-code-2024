@@ -22,19 +22,21 @@ int main(int argc, char* argv[])
     std::unordered_map<vec, bool, vec::hash> antinode_positions;
 
     for (auto& positions : positions_by_character) {
-        for (Vec<i64> a : positions) {
-            for (Vec<i64> b : positions) {
+        for (const vec a : positions) {
+            for (const vec b : positions) {
                 if (a == b)
                     continue;
 
                 const vec diff = b - a;
-                const vec antinode1 = a - diff;
-                const vec antinode2 = b + diff;
-                if (grid.is_inbounds(antinode1)) {
-                    antinode_positions.insert({antinode1, true});
+                vec iter = a;
+                while (grid.is_inbounds(iter)) {
+                    antinode_positions.insert({iter, true});
+                    iter -= diff;
                 }
-                if (grid.is_inbounds(antinode2)) {
-                    antinode_positions.insert({antinode2, true});
+                iter = b;
+                while (grid.is_inbounds(iter)) {
+                    antinode_positions.insert({iter, true});
+                    iter += diff;
                 }
             }
         }
