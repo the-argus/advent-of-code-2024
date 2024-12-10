@@ -6,12 +6,10 @@ struct PathNode;
 
 using PeakMap = std::unordered_map<vec, PathNode*, vec::hash>;
 
-// double linked directed graph
-// i think this is acyclic? but if its not and we refcycle, whatever
 struct PathNode
 {
     vec pos;
-    std::optional<PeakMap> explored;
+    std::optional<u64> explored;
 };
 
 int main(int argc, char* argv[])
@@ -24,30 +22,30 @@ int main(int argc, char* argv[])
 
     std::unordered_map<vec, std::unique_ptr<PathNode>, vec::hash> all_pathnodes;
     PeakMap trailheads;
-    PeakMap peaks;
 
     grid.for_each([&](Grid::enumerated_pair e) {
         auto [c, pos] = e;
-        if (c == '0' || c == '9') {
+        if (c == '0') {
             auto p = std::make_unique<PathNode>(PathNode{.pos = pos});
             auto* weakp = p.get();
             all_pathnodes.insert({vec(pos), std::move(p)});
-            (c == '0' ? trailheads : peaks).insert({vec(pos), weakp});
+            trailheads.insert({vec(pos), weakp});
         }
     });
 
-    std::function<PeakMap(PathNode*)> explore;
-    explore = [&](PathNode* p) -> PeakMap {
+    std::function<u64(PathNode*)> explore;
+    explore = [&](PathNode* p) -> u64 {
         if (grid[p->pos] == '9')
-            p->explored = {{p->pos, p}};
+            p->explored = 1;
 
+        // we have already counted the number of unique paths
         if (p->explored)
             return p->explored.value();
 
         constexpr std::array neighbors = {vec{1, 0}, vec{-1, 0}, vec{0, 1},
                                           vec{0, -1}};
 
-        PeakMap peaks_found;
+        u64 peaks_found = 0;
 
         // check all neighbors for uphill ones
         for (const vec& offset : neighbors) {
@@ -69,16 +67,15 @@ int main(int argc, char* argv[])
                 nptr = all_pathnodes.at(neighbor).get();
             }
 
-            PeakMap found = explore(nptr);
-            std::copy(std::begin(found), std::end(found),
-                      std::inserter(peaks_found, peaks_found.end()));
+            peaks_found += explore(nptr);
         }
-        return peaks_found;
+        p->explored = peaks_found;
+        return p->explored.value();
     };
 
     u64 total = 0;
     for (const auto& pair : trailheads)
-        total += explore(pair.second).size();
+        total += explore(pair.second);
 
     fmt::println("total trailhead scores: {}", total);
 
