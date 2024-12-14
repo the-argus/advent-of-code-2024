@@ -8,17 +8,21 @@
 #include <span>
 #include <vector>
 
-class Grid
+template <typename T> class Array2D
 {
   public:
-    using element_type = char;
+    static constexpr bool is_char_grid = std::is_same_v<T, char>;
+    using element_type = T;
     using indexer_type = Vec<i64>;
     using enumerated_pair = std::pair<element_type&, indexer_type>;
     using column_type = std::span<element_type>;
     using const_column_type = std::span<const element_type>;
 
     /// Parses the file into a grid, and closes it
-    static inline Grid parse(std::ifstream&& file);
+    static inline Array2D parse(std::ifstream&& file)
+        requires is_char_grid;
+
+    static inline Array2D empty_of_dimensions(Vec<u64> dimensions);
 
     inline element_type& operator[](indexer_type index);
     inline const element_type& operator[](indexer_type index) const;
@@ -29,7 +33,8 @@ class Grid
     [[nodiscard]] inline const_column_type row_at(u64 idx) const;
     [[nodiscard]] inline bool is_inbounds(indexer_type coord) const;
 
-    inline void debug_print() const;
+    inline void debug_print() const
+        requires is_char_grid;
 
     // easier than writing an iterator tbh
     // losing out on <algorithm> should be fine?
@@ -49,16 +54,20 @@ class Grid
     inline void bounds_check(indexer_type index) const;
     [[nodiscard]] inline u64 map(indexer_type index) const;
 
-    inline Grid(std::vector<char>&& contents, Vec<u64> dimensions)
+    inline Array2D(std::vector<T>&& contents, Vec<u64> dimensions)
         : m_contents(std::move(contents)), m_dimensions(dimensions)
     {
     }
 
-    std::vector<char> m_contents;
+    std::vector<T> m_contents;
     Vec<u64> m_dimensions;
 };
 
-inline Grid Grid::parse(std::ifstream&& file)
+using Grid = Array2D<char>;
+
+template <typename T>
+inline auto Array2D<T>::parse(std::ifstream&& file) -> Array2D
+    requires is_char_grid
 {
     std::string line;
     Vec<u64> dimensions = {};
@@ -85,27 +94,39 @@ inline Grid Grid::parse(std::ifstream&& file)
 
     file.close();
 
-    return Grid(std::move(contents), dimensions);
+    return Array2D(std::move(contents), dimensions);
 }
 
-inline auto Grid::operator[](indexer_type index) -> element_type&
+template <typename T>
+inline auto Array2D<T>::empty_of_dimensions(Vec<u64> dimensions) -> Array2D
+{
+    std::vector<T> contents;
+    contents.resize(dimensions.x * dimensions.y);
+    return Array2D(std::move(contents), dimensions);
+}
+
+template <typename T>
+inline auto Array2D<T>::operator[](indexer_type index) -> element_type&
 {
     bounds_check(index);
     return m_contents.at(map(index));
 }
 
-inline auto Grid::operator[](indexer_type index) const -> const element_type&
+template <typename T>
+inline auto Array2D<T>::operator[](indexer_type index) const
+    -> const element_type&
 {
     bounds_check(index);
     return m_contents.at(map(index));
 }
 
-inline u64 Grid::map(indexer_type index) const
+template <typename T> inline u64 Array2D<T>::map(indexer_type index) const
 {
     return (index.y * m_dimensions.x) + index.x;
 }
 
-inline void Grid::bounds_check(indexer_type index) const
+template <typename T>
+inline void Array2D<T>::bounds_check(indexer_type index) const
 {
     if (map(index) >= m_contents.size() || !is_inbounds(index)) {
         fmt::println("out of bounds access to {}x{} grid: ({}, {})",
@@ -114,23 +135,27 @@ inline void Grid::bounds_check(indexer_type index) const
     }
 }
 
-inline auto Grid::row_at(u64 idx) -> column_type
+template <typename T> inline auto Array2D<T>::row_at(u64 idx) -> column_type
 {
     return {&m_contents.at(idx * m_dimensions.x), m_dimensions.x};
 }
 
-inline auto Grid::row_at(u64 idx) const -> const_column_type
+template <typename T>
+inline auto Array2D<T>::row_at(u64 idx) const -> const_column_type
 {
     return {&m_contents.at(idx * m_dimensions.x), m_dimensions.x};
 }
 
-inline bool Grid::is_inbounds(indexer_type coord) const
+template <typename T>
+inline bool Array2D<T>::is_inbounds(indexer_type coord) const
 {
     return coord.x >= 0 && coord.y >= 0 && coord.x < m_dimensions.x &&
            coord.y < m_dimensions.y;
 }
 
-inline void Grid::debug_print() const
+template <typename T>
+inline void Array2D<T>::debug_print() const
+    requires is_char_grid
 {
     for (u64 i = 0; i < m_dimensions.x; ++i) {
         const auto row = row_at(i);

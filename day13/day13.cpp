@@ -1,44 +1,14 @@
 #include "aoc.h"
 #include "shorthand.h"
+#include "vec.h"
 #include <array>
 #include <cassert>
 
 static constexpr f64 FEPSILON = 0.001;
 
-static bool roughly_equals(f64 a, f64 b) { return std::abs(a - b) < FEPSILON; }
+using vecd = Vec<f64>;
 
-struct vec
-{
-    f64 x;
-    f64 y;
-    [[nodiscard]] f64 len() const { return std::sqrt((x * x) + (y * y)); }
-    [[nodiscard]] vec normalized() const
-    {
-        const f64 l = len();
-        return {x / l, y / l};
-    }
-    [[nodiscard]] f64 dot(const vec& other) const
-    {
-        return x * other.x + y * other.y;
-    }
-    [[nodiscard]] vec mul(const vec& other) const
-    {
-        return {x * other.x, y * other.y};
-    }
-    [[nodiscard]] vec sub(const vec& other) const
-    {
-        return {x - other.x, y - other.y};
-    }
-    [[nodiscard]] vec add(const vec& other) const
-    {
-        return {x + other.x, y + other.y};
-    }
-    [[nodiscard]] vec scale(f64 s) const { return {x * s, y * s}; }
-    [[nodiscard]] bool roughly_equals(const vec& other) const
-    {
-        return ::roughly_equals(x, other.x) && ::roughly_equals(y, other.y);
-    }
-};
+static bool roughly_equals(f64 a, f64 b) { return std::abs(a - b) < FEPSILON; }
 
 struct mat
 {
@@ -46,9 +16,12 @@ struct mat
         std::array{1.0, 0.0},
         std::array{0.0, 1.0},
     };
-    mat(std::array<vec, 2> c) : columns({{c[0].x, c[0].y}, {c[1].x, c[1].y}}) {}
 
-    [[nodiscard]] vec mul(const vec& other) const
+    mat(std::array<vecd, 2> c) : columns({{c[0].x, c[0].y}, {c[1].x, c[1].y}})
+    {
+    }
+
+    [[nodiscard]] vecd mul(const vecd& other) const
     {
         return {
             other.x * columns[0][0] + other.y * columns[1][0],
@@ -63,8 +36,8 @@ struct mat
         assert(det_inverse != 0.0);
         const f64 det = 1.0 / det_inverse;
         return mat({
-            vec{columns[1][1], -columns[0][1]}.scale(det),
-            vec{-columns[1][0], columns[0][0]}.scale(det),
+            vecd{columns[1][1], -columns[0][1]} * vecd::splat(det),
+            vecd{-columns[1][0], columns[0][0]} * vecd::splat(det),
         });
     }
 };
@@ -114,13 +87,13 @@ int main(int argc, char* argv[])
             assert(!roughly_equals(slope_a, slope_b));
         }
 
-        const vec prize = {f64(prize_x), f64(prize_y)};
-        const vec a_onemove = {f64(a_x), f64(a_y)};
-        const vec b_onemove = {f64(b_x), f64(b_y)};
+        const vecd prize = {f64(prize_x), f64(prize_y)};
+        const vecd a_onemove = {f64(a_x), f64(a_y)};
+        const vecd b_onemove = {f64(b_x), f64(b_y)};
 
         // transform matrix described by a and b
         const mat space({a_onemove, b_onemove});
-        const vec transformed = space.inverse().mul(prize);
+        const vecd transformed = space.inverse().mul(prize);
 
         if (!roughly_equals(transformed.x, std::round(transformed.x)))
             continue;
