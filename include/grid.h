@@ -24,6 +24,21 @@ template <typename T> class Array2D
 
     static inline Array2D empty_of_dimensions(Vec<u64> dimensions);
 
+    template <typename U, typename Callable>
+        requires std::is_invocable_r_v<U, Callable, const enumerated_pair&>
+    inline Array2D<U> transform(const Callable& func)
+    {
+        Array2D<U> out = Array2D<U>::empty_of_dimensions(m_dimensions);
+        for (u64 y = 0; y < m_dimensions.y; ++y) {
+            for (u64 x = 0; x < m_dimensions.x; ++x) {
+                const indexer_type i{i64(x), i64(y)};
+                out[i] = func(enumerated_pair{(*this)[i], i});
+            }
+        }
+        // TODO: rvo always?
+        return out;
+    }
+
     inline element_type& operator[](indexer_type index);
     inline const element_type& operator[](indexer_type index) const;
 
@@ -35,6 +50,11 @@ template <typename T> class Array2D
 
     inline void debug_print() const
         requires is_char_grid;
+
+    inline constexpr void clear()
+    {
+        std::fill(std::begin(m_contents), std::end(m_contents), T{});
+    }
 
     // easier than writing an iterator tbh
     // losing out on <algorithm> should be fine?
